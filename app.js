@@ -1,5 +1,5 @@
-const STORAGE_KEY = 'akta-bookings-web-v1';
-const SETTINGS_KEY = 'akta-bookings-settings-web-v1';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzk5EJXxI9_Qkg77ZU6EOYF2imQfsL7HtN6L9o40A_6Y8f0Rsxo3RG8_MKKKHccHJgg/exec';
+const SETTINGS_KEY = 'akta-bookings-settings-web-v2';
 
 const defaultSettings = {
   labName: 'AKTA 使用预约登记',
@@ -10,7 +10,8 @@ const defaultSettings = {
 const state = {
   bookings: [],
   settings: { ...defaultSettings },
-  editingId: null,
+  editingRowNumber: null,
+  isLoading: false,
 };
 
 const el = {
@@ -144,7 +145,7 @@ function setFormData(data) {
 }
 
 function resetForm() {
-  state.editingId = null;
+  state.editingRowNumber = null;
   el.formTitle.textContent = '登记新的预约';
   el.submitBtn.textContent = '提交预约';
   setFormData({
@@ -157,9 +158,9 @@ function resetForm() {
   clearFeedback();
 }
 
-function findConflict(candidate, ignoreId = null) {
+function findConflict(candidate, ignoreRowNumber = null) {
   const candidateEnd = effectiveEnd(candidate.end, candidate.cleanupMinutes);
-  return state.bookings.find((item) => item.id !== ignoreId && item.date === candidate.date && overlaps(candidate.start, candidateEnd, item.start, effectiveEnd(item.end, item.cleanupMinutes)));
+  return state.bookings.find((item) => item._rowNumber !== ignoreRowNumber && item.date === candidate.date && overlaps(candidate.start, candidateEnd, item.start, effectiveEnd(item.end, item.cleanupMinutes)));
 }
 
 function renderStats() {
@@ -194,7 +195,7 @@ function bookingToCsvRow(item) {
     item.purpose,
     item.contact,
     item.notes,
-    item.createdAt,
+    item.createdAt || '',
   ];
 }
 
@@ -273,7 +274,7 @@ function createDayCard(date, items) {
     }
 
     clone.querySelector('.edit-btn').addEventListener('click', () => {
-      state.editingId = item.id;
+      state.editingRowNumber = item._rowNumber;
       el.formTitle.textContent = '编辑预约';
       el.submitBtn.textContent = '保存修改';
       setFormData(item);
@@ -282,11 +283,15 @@ function createDayCard(date, items) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    clone.querySelector('.delete-btn').addEventListener('click', () => {
+    clone.querySelector('.delete-btn').addEventListener('click', async () => {
       if (!confirm('确定删除这条预约吗？删除后无法恢复。')) return;
-      state.bookings = state.bookings.filter((b) => b.id !== item.id);
-      persist();
-      renderAll();
+      try {
+        await apiRequest({ action: 'delete', rowNumber: item._rowNumber });
+        await reloadBookings();
+        showFeedback('预约已删除。', 'success');
+      } catch (error) {
+        showFeedback(`删除失败：${error.message}`, 'error');
+      }
     });
 
     wrapper.appendChild(clone);
@@ -300,7 +305,7 @@ function renderList() {
   el.listContainer.innerHTML = '';
 
   if (!list.length) {
-    el.listContainer.appendChild(createEmpty('还没有符合条件的预约记录。'));
+    el.listContainer.appendChild(createEmpty(state.isLoading ? '正在加载预约记录…' : '还没有符合条件的预约记录。'));
     return;
   }
 
@@ -315,8 +320,7 @@ function renderList() {
   });
 }
 
-function persist() {
-  saveJSON(STORAGE_KEY, state.bookings);
+function persistSettings() {
   saveJSON(SETTINGS_KEY, state.settings);
 }
 
@@ -332,11 +336,58 @@ function activateTab(name) {
   Object.entries(el.panels).forEach(([key, panel]) => panel.classList.toggle('active', key === name));
 }
 
+function normalizeBooking(item) {
+  return {
+    _rowNumber: Number(item._rowNumber),
+    user: String(item.User || ''),
+    lab: String(item.Lab || ''),
+    project: String(item.Project || ''),
+    date: String(item.Date || ''),
+    purpose: String(item.Purpose || ''),
+    start: String(item.Start || ''),
+    end: String(item.End || ''),
+    cleanupMinutes: Number(item.CleanupMinutes || 0),
+    contact: String(item.Contact || ''),
+    notes: String(item.Notes || ''),
+    createdAt: item.Timestamp ? new Date(item.Timestamp).toISOString?.() || String(item.Timestamp) : '',
+  };
+}
+
+async function apiRequest(payload = null) {
+  const options = payload
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload),
+        redirect: 'follow',
+      }
+    : { method: 'GET', redirect: 'follow' };
+
+  const response = await fetch(API_URL, options);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const json = await response.json();
+  if (!json.success) {
+    throw new Error(json.error || '服务器返回失败');
+  }
+  return json;
+}
+
+async function reloadBookings() {
+  state.isLoading = true;
+  renderList();
+  const json = await apiRequest();
+  state.bookings = (json.data || []).map(normalizeBooking).sort(sortBookings);
+  state.isLoading = false;
+  renderAll();
+}
+
 el.tabs.forEach((tab) => {
   tab.addEventListener('click', () => activateTab(tab.dataset.tab));
 });
 
-el.bookingForm.addEventListener('submit', (event) => {
+el.bookingForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const data = getFormData();
 
@@ -350,31 +401,44 @@ el.bookingForm.addEventListener('submit', (event) => {
     return;
   }
 
-  const conflict = findConflict(data, state.editingId);
-  if (conflict) {
-    showFeedback(`时间冲突：${conflict.date} 已有 ${conflict.user} 的预约（${conflict.start}–${conflict.end}，另含 ${conflict.cleanupMinutes} 分钟整理时间）。`, 'error');
-    return;
+  try {
+    el.submitBtn.disabled = true;
+    el.submitBtn.textContent = state.editingRowNumber ? '保存中…' : '提交中…';
+
+    await reloadBookings();
+    const conflict = findConflict(data, state.editingRowNumber);
+    if (conflict) {
+      showFeedback(`时间冲突：${conflict.date} 已有 ${conflict.user} 的预约（${conflict.start}–${conflict.end}，另含 ${conflict.cleanupMinutes} 分钟整理时间）。`, 'error');
+      return;
+    }
+
+    const payload = {
+      action: state.editingRowNumber ? 'update' : 'create',
+      rowNumber: state.editingRowNumber,
+      User: data.user,
+      Lab: data.lab,
+      Project: data.project,
+      Date: data.date,
+      Start: data.start,
+      End: data.end,
+      CleanupMinutes: data.cleanupMinutes,
+      Purpose: data.purpose,
+      Contact: data.contact,
+      Notes: data.notes,
+    };
+
+    await apiRequest(payload);
+    await reloadBookings();
+    const message = state.editingRowNumber ? '预约已更新。' : '预约已登记。';
+    resetForm();
+    showFeedback(message, 'success');
+    activateTab('list');
+  } catch (error) {
+    showFeedback(`提交失败：${error.message}`, 'error');
+  } finally {
+    el.submitBtn.disabled = false;
+    el.submitBtn.textContent = state.editingRowNumber ? '保存修改' : '提交预约';
   }
-
-  const existing = state.bookings.find((item) => item.id === state.editingId);
-  const payload = {
-    ...data,
-    id: state.editingId || crypto.randomUUID(),
-    createdAt: existing?.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  if (state.editingId) {
-    state.bookings = state.bookings.map((item) => item.id === state.editingId ? payload : item).sort(sortBookings);
-    showFeedback('预约已更新。', 'success');
-  } else {
-    state.bookings = [...state.bookings, payload].sort(sortBookings);
-    showFeedback('预约已登记。', 'success');
-  }
-
-  persist();
-  renderAll();
-  resetForm();
 });
 
 el.resetBtn.addEventListener('click', resetForm);
@@ -399,28 +463,41 @@ el.settingsForm.addEventListener('submit', (event) => {
     defaultCleanupMinutes: Number(settingFields.defaultCleanupMinutes.value || 0),
     notice: settingFields.notice.value.trim() || defaultSettings.notice,
   };
-  persist();
+  persistSettings();
   renderAll();
-  if (!state.editingId) {
+  if (!state.editingRowNumber) {
     fields.cleanupMinutes.value = state.settings.defaultCleanupMinutes;
   }
   activateTab('book');
-  showFeedback('设置已保存。', 'success');
+  showFeedback('设置已保存（只保存在当前浏览器）。', 'success');
 });
 
-el.clearAllBtn.addEventListener('click', () => {
+el.clearAllBtn.addEventListener('click', async () => {
   if (!confirm('确定清空所有预约记录吗？此操作不可恢复。')) return;
-  state.bookings = [];
-  persist();
-  renderAll();
-  activateTab('list');
+  try {
+    const bookings = [...state.bookings];
+    for (const item of bookings.sort((a, b) => b._rowNumber - a._rowNumber)) {
+      await apiRequest({ action: 'delete', rowNumber: item._rowNumber });
+    }
+    await reloadBookings();
+    activateTab('list');
+    showFeedback('所有预约已清空。', 'success');
+  } catch (error) {
+    showFeedback(`清空失败：${error.message}`, 'error');
+  }
 });
 
-function init() {
-  state.bookings = loadJSON(STORAGE_KEY, []).sort(sortBookings);
+async function init() {
   state.settings = { ...defaultSettings, ...loadJSON(SETTINGS_KEY, defaultSettings) };
   renderAll();
   resetForm();
+  try {
+    await reloadBookings();
+  } catch (error) {
+    state.isLoading = false;
+    renderList();
+    showFeedback(`无法连接 Google Sheets：${error.message}`, 'error');
+  }
 }
 
 init();
