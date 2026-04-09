@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">Lab booking</p>
         <h1>AKTA 使用预约登记</h1>
-        <p class="subtext">单台 AKTA 的实验室预约网页。支持本地保存、时间冲突检测、编辑删除和 CSV 导出。</p>
+        <p class="subtext">单台 AKTA 的实验室预约网页。支持共享预约、时间冲突检测、编辑删除和 CSV 导出。</p>
       </div>
       <div class="hero-card">
         <div class="stat">
@@ -54,15 +54,6 @@
             <input id="user" required placeholder="例如：Sam" />
           </label>
 
-          <label>
-            课题组/实验室 *
-            <input id="lab" required placeholder="例如：GPCR Lab" />
-          </label>
-
-          <label class="span-2">
-            项目名称 *
-            <input id="project" required placeholder="例如：GABAA purification" />
-          </label>
 
           <label>
             日期 *
@@ -70,8 +61,8 @@
           </label>
 
           <label>
-            用途
-            <input id="purpose" placeholder="例如：Affinity purification" />
+            用途 *（柱子类型）
+            <input id="purpose" required placeholder="例如：Superdex 200 / Ni-NTA / Affinity purification" />
           </label>
 
           <label>
@@ -114,12 +105,12 @@
         <aside class="card sidebar">
           <div class="card-header">
             <h2>筛选</h2>
-            <p>按姓名、项目或日期查看预约。</p>
+            <p>按姓名、用途或日期查看预约。</p>
           </div>
 
           <label>
             关键词
-            <input id="searchInput" placeholder="姓名 / 项目 / 备注" />
+            <input id="searchInput" placeholder="姓名 / 用途 / 备注" />
           </label>
 
           <label>
@@ -180,10 +171,10 @@
         <div>
           <div class="badges">
             <span class="badge solid">AKTA</span>
-            <span class="badge"></span>
-            <span class="badge lab-badge"></span>
+            <span class="badge user-badge"></span>
+            <span class="badge purpose-badge hidden"></span>
           </div>
-          <h3 class="project-name"></h3>
+          <h3 class="project-name">预约信息</h3>
           <div class="meta"></div>
           <p class="purpose-row hidden"></p>
           <p class="contact-row hidden"></p>
