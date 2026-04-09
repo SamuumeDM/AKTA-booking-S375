@@ -40,8 +40,6 @@ const el = {
 
 const fields = {
   user: document.getElementById('user'),
-  lab: document.getElementById('lab'),
-  project: document.getElementById('project'),
   date: document.getElementById('date'),
   purpose: document.getElementById('purpose'),
   start: document.getElementById('start'),
@@ -125,8 +123,6 @@ function sortBookings(a, b) {
 function getFormData() {
   return {
     user: fields.user.value.trim(),
-    lab: fields.lab.value.trim(),
-    project: fields.project.value.trim(),
     date: fields.date.value,
     purpose: fields.purpose.value.trim(),
     start: fields.start.value,
@@ -139,10 +135,8 @@ function getFormData() {
 
 function setFormData(data) {
   fields.user.value = data.user || '';
-  fields.lab.value = data.lab || '';
-  fields.project.value = data.project || '';
   fields.date.value = data.date || nowDate();
-  fields.purpose.value = data.purpose || 'Protein purification';
+  fields.purpose.value = data.purpose || '';
   fields.start.value = data.start || '09:00';
   fields.end.value = data.end || '10:00';
   fields.cleanupMinutes.value = Number.isFinite(Number(data.cleanupMinutes)) ? data.cleanupMinutes : state.settings.defaultCleanupMinutes;
@@ -156,7 +150,7 @@ function resetForm() {
   el.submitBtn.textContent = '提交预约';
   setFormData({
     date: nowDate(),
-    purpose: 'Protein purification',
+    purpose: '',
     start: '09:00',
     end: '10:00',
     cleanupMinutes: state.settings.defaultCleanupMinutes,
@@ -230,7 +224,7 @@ function filteredBookings() {
     .filter((item) => (selectedDate ? item.date === selectedDate : true))
     .filter((item) => {
       if (!query) return true;
-      const hay = [item.user, item.lab, item.project, item.purpose, item.contact, item.notes].join(' ').toLowerCase();
+      const hay = [item.user, item.purpose, item.contact, item.notes].join(' ').toLowerCase();
       return hay.includes(query);
     })
     .sort(sortBookings);
@@ -257,9 +251,16 @@ function createDayCard(date, items) {
   items.forEach((item) => {
     const clone = template.content.firstElementChild.cloneNode(true);
     const badges = clone.querySelectorAll('.badge:not(.solid)');
-    badges[0].textContent = item.user;
-    badges[1].textContent = item.lab;
-    clone.querySelector('.project-name').textContent = item.project;
+    badges[0].textContent = item.user || '未填写姓名';
+    const purposeBadge = clone.querySelector('.purpose-badge');
+    if (item.purpose) {
+      badges[1].textContent = '柱子类型';
+      purposeBadge.textContent = item.purpose;
+      purposeBadge.classList.remove('hidden');
+    } else {
+      badges[1].textContent = '预约';
+    }
+    clone.querySelector('.project-name').textContent = item.user || '预约信息';
     clone.querySelector('.meta').innerHTML = `时间：${item.start}–${item.end}<br>整理至：${effectiveEnd(item.end, item.cleanupMinutes)}`;
 
     const purpose = clone.querySelector('.purpose-row');
@@ -267,7 +268,7 @@ function createDayCard(date, items) {
     const notes = clone.querySelector('.notes-row');
 
     if (item.purpose) {
-      purpose.textContent = `用途：${item.purpose}`;
+      purpose.textContent = `用途（柱子类型）：${item.purpose}`;
       purpose.classList.remove('hidden');
     }
     if (item.contact) {
@@ -373,8 +374,8 @@ function normalizeBooking(item) {
   return {
     _rowNumber: Number(item._rowNumber),
     user: String(item.User || ''),
-    lab: String(item.Lab || ''),
-    project: String(item.Project || ''),
+    lab: '',
+    project: '',
     date: normalizeDateValue(item.Date),
     purpose: String(item.Purpose || ''),
     start: normalizeTimeValue(item.Start),
@@ -424,8 +425,8 @@ el.bookingForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   const data = getFormData();
 
-  if (!data.user || !data.lab || !data.project || !data.date || !data.start || !data.end) {
-    showFeedback('请填写姓名、课题组、项目、日期和起止时间。', 'error');
+  if (!data.user || !data.date || !data.purpose || !data.start || !data.end) {
+    showFeedback('请填写姓名、日期、用途（柱子类型）和起止时间。', 'error');
     return;
   }
 
@@ -449,8 +450,8 @@ el.bookingForm.addEventListener('submit', async (event) => {
       action: state.editingRowNumber ? 'update' : 'create',
       rowNumber: state.editingRowNumber,
       User: data.user,
-      Lab: data.lab,
-      Project: data.project,
+      Lab: '',
+      Project: '',
       Date: data.date,
       Start: data.start,
       End: data.end,
