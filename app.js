@@ -1,5 +1,5 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzk5EJXxI9_Qkg77ZU6EOYF2imQfsL7HtN6L9o40A_6Y8f0Rsxo3RG8_MKKKHccHJgg/exec';
-const SETTINGS_KEY = 'akta-bookings-settings-web-v2';
+const SETTINGS_KEY = 'akta-bookings-settings-web-v3';
 
 const defaultSettings = {
   labName: 'AKTA 使用预约登记',
@@ -75,7 +75,7 @@ function nowDate() {
 }
 
 function toMinutes(time) {
-  const [h, m] = time.split(':').map(Number);
+  const [h, m] = String(time || '').split(':').map(Number);
   return h * 60 + m;
 }
 
@@ -98,6 +98,12 @@ function statusOf(date) {
   const today = nowDate();
   if (date === today) return 'today';
   if (date > today) return 'upcoming';
+  return 'past';
+}
+
+function statusLabel(status) {
+  if (status === 'today') return 'today';
+  if (status === 'upcoming') return 'upcoming';
   return 'past';
 }
 
@@ -244,15 +250,15 @@ function createDayCard(date, items) {
   const header = document.createElement('div');
   header.className = 'day-header';
   const status = statusOf(date);
-  const statusText = status === 'today' ? 'today' : status === 'upcoming' ? 'upcoming' : 'past';
-  header.innerHTML = `<div><h2>${date}</h2><p>${items.length} 条预约</p></div><span class="day-status">${statusText}</span>`;
+  header.innerHTML = `<div><h2>${date}</h2><p>${items.length} 条预约</p></div><span class="day-status ${status}">${statusLabel(status)}</span>`;
   wrapper.appendChild(header);
 
   const template = document.getElementById('bookingTemplate');
   items.forEach((item) => {
     const clone = template.content.firstElementChild.cloneNode(true);
-    clone.querySelector('.badge:not(.solid)').textContent = item.user;
-    clone.querySelector('.lab-badge').textContent = item.lab;
+    const badges = clone.querySelectorAll('.badge:not(.solid)');
+    badges[0].textContent = item.user;
+    badges[1].textContent = item.lab;
     clone.querySelector('.project-name').textContent = item.project;
     clone.querySelector('.meta').innerHTML = `时间：${item.start}–${item.end}<br>整理至：${effectiveEnd(item.end, item.cleanupMinutes)}`;
 
@@ -336,20 +342,47 @@ function activateTab(name) {
   Object.entries(el.panels).forEach(([key, panel]) => panel.classList.toggle('active', key === name));
 }
 
+function normalizeDateValue(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return String(value).slice(0, 10);
+}
+
+function normalizeTimeValue(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) return value;
+  const match = String(value).match(/(\d{2}):(\d{2})/);
+  if (match) return `${match[1]}:${match[2]}`;
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    const h = String(parsed.getHours()).padStart(2, '0');
+    const m = String(parsed.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  return String(value);
+}
+
 function normalizeBooking(item) {
   return {
     _rowNumber: Number(item._rowNumber),
     user: String(item.User || ''),
     lab: String(item.Lab || ''),
     project: String(item.Project || ''),
-    date: String(item.Date || ''),
+    date: normalizeDateValue(item.Date),
     purpose: String(item.Purpose || ''),
-    start: String(item.Start || ''),
-    end: String(item.End || ''),
+    start: normalizeTimeValue(item.Start),
+    end: normalizeTimeValue(item.End),
     cleanupMinutes: Number(item.CleanupMinutes || 0),
     contact: String(item.Contact || ''),
     notes: String(item.Notes || ''),
-    createdAt: item.Timestamp ? new Date(item.Timestamp).toISOString?.() || String(item.Timestamp) : '',
+    createdAt: item.Timestamp ? String(item.Timestamp) : '',
   };
 }
 
