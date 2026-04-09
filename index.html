@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AKTA 使用预约登记</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Lab booking</p>
+        <h1>AKTA 使用预约登记</h1>
+        <p class="subtext">单台 AKTA 的实验室预约网页。支持本地保存、时间冲突检测、编辑删除和 CSV 导出。</p>
+      </div>
+      <div class="hero-card">
+        <div class="stat">
+          <span class="label">今日预约</span>
+          <strong id="statToday">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">未来预约</span>
+          <strong id="statUpcoming">0</strong>
+        </div>
+        <div class="stat">
+          <span class="label">设备</span>
+          <strong>1</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="notice">
+      <strong>提醒：</strong>
+      <span id="noticeText">请把上样、清洗、系统平衡和结束整理时间一起算进预约时段。</span>
+    </section>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="book">新建预约</button>
+      <button class="tab" data-tab="list">预约列表</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </div>
+
+    <section class="panel active" id="panel-book">
+      <div class="card">
+        <div class="card-header">
+          <h2 id="formTitle">登记新的预约</h2>
+          <p>系统会自动检查同一天内的时间冲突。</p>
+        </div>
+
+        <form id="bookingForm" class="grid-form">
+          <label>
+            姓名 *
+            <input id="user" required placeholder="例如：Sam" />
+          </label>
+
+          <label>
+            课题组/实验室 *
+            <input id="lab" required placeholder="例如：GPCR Lab" />
+          </label>
+
+          <label class="span-2">
+            项目名称 *
+            <input id="project" required placeholder="例如：GABAA purification" />
+          </label>
+
+          <label>
+            日期 *
+            <input id="date" type="date" required />
+          </label>
+
+          <label>
+            用途
+            <input id="purpose" placeholder="例如：Affinity purification" />
+          </label>
+
+          <label>
+            开始时间 *
+            <input id="start" type="time" required />
+          </label>
+
+          <label>
+            结束时间 *
+            <input id="end" type="time" required />
+          </label>
+
+          <label>
+            整理/平衡时间（分钟）
+            <input id="cleanupMinutes" type="number" min="0" />
+          </label>
+
+          <label>
+            联系方式
+            <input id="contact" placeholder="邮箱、微信或手机号" />
+          </label>
+
+          <label class="span-2">
+            备注
+            <textarea id="notes" rows="4" placeholder="例如：结束后需要CIP，或需要提前平衡系统。"></textarea>
+          </label>
+
+          <div id="feedback" class="feedback hidden"></div>
+
+          <div class="actions span-2">
+            <button type="submit" class="primary" id="submitBtn">提交预约</button>
+            <button type="button" id="resetBtn">重置表单</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-list">
+      <div class="two-col">
+        <aside class="card sidebar">
+          <div class="card-header">
+            <h2>筛选</h2>
+            <p>按姓名、项目或日期查看预约。</p>
+          </div>
+
+          <label>
+            关键词
+            <input id="searchInput" placeholder="姓名 / 项目 / 备注" />
+          </label>
+
+          <label>
+            日期
+            <input id="filterDate" type="date" />
+          </label>
+
+          <div class="actions vertical">
+            <button id="clearFiltersBtn" type="button">清空筛选</button>
+            <button id="exportBtn" type="button">导出 CSV</button>
+          </div>
+        </aside>
+
+        <main id="listContainer" class="list-stack"></main>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-settings">
+      <div class="card">
+        <div class="card-header">
+          <h2>基础设置</h2>
+          <p>这里只保留最必要的设置项。</p>
+        </div>
+
+        <form id="settingsForm" class="grid-form">
+          <label class="span-2">
+            页面标题
+            <input id="labName" />
+          </label>
+
+          <label>
+            默认整理/平衡时间（分钟）
+            <input id="defaultCleanupMinutes" type="number" min="0" />
+          </label>
+
+          <label>
+            固定设备
+            <input value="AKTA" disabled />
+          </label>
+
+          <label class="span-2">
+            提醒文字
+            <textarea id="notice" rows="4"></textarea>
+          </label>
+
+          <div class="actions span-2">
+            <button type="submit" class="primary">保存设置</button>
+            <button type="button" id="clearAllBtn" class="danger">清空所有预约</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <template id="bookingTemplate">
+    <article class="card booking-card">
+      <div class="booking-top">
+        <div>
+          <div class="badges">
+            <span class="badge solid">AKTA</span>
+            <span class="badge"></span>
+            <span class="badge lab-badge"></span>
+          </div>
+          <h3 class="project-name"></h3>
+          <div class="meta"></div>
+          <p class="purpose-row hidden"></p>
+          <p class="contact-row hidden"></p>
+          <p class="notes-row hidden"></p>
+        </div>
+        <div class="booking-actions">
+          <button class="edit-btn" type="button">编辑</button>
+          <button class="delete-btn danger" type="button">删除</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
