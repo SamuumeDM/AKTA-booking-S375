@@ -338,3 +338,142 @@ button.danger:hover { background: var(--danger-dark); }
   .booking-top, .day-header { flex-direction: column; }
   .sidebar { position: static; }
 }
+/* ===== 更宽的预约列表视图 ===== */
+
+.page {
+  max-width: 1480px;
+  padding: 16px 20px 32px;
+}
+
+.hero {
+  grid-template-columns: 1.8fr 0.7fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.sidebar {
+  top: 10px;
+}
+
+.card,
+.hero-card {
+  border-radius: 16px;
+}
+
+.card {
+  padding: 14px;
+}
+
+.list-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.day-card {
+  padding: 12px 14px;
+}
+
+.day-card h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.day-header {
+  margin-bottom: 10px;
+}
+
+.day-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.day-status {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.booking-card + .booking-card {
+  margin-top: 8px;
+}
+
+.booking-card {
+  padding: 10px 12px;
+}
+
+.booking-top {
+  gap: 10px;
+}
+
+.badges {
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.badge {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.project-name {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.meta {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.purpose-row,
+.contact-row,
+.notes-row {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.booking-actions {
+  gap: 8px;
+}
+
+.booking-actions button {
+  min-width: 72px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.empty {
+  padding: 24px 12px;
+}
+
+@media (max-width: 1200px) {
+  .page {
+    max-width: 100%;
+    padding: 14px 16px 28px;
+  }
+
+  .two-col {
+    grid-template-columns: 200px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero,
+  .two-col,
+  .grid-form {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}
