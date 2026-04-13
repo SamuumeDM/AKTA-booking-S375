@@ -336,12 +336,16 @@ function exportCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
+function activeFilterDate() {
+  return el.filterDate.value || nowDate();
+}
+
 function filteredBookings() {
   const query = el.searchInput.value.trim().toLowerCase();
-  const selectedDate = el.filterDate.value;
+  const selectedDate = activeFilterDate();
 
   return [...visibleBookings()]
-    .filter((item) => (selectedDate ? item.date === selectedDate : true))
+    .filter((item) => item.date === selectedDate)
     .filter((item) => {
       if (!query) return true;
       const hay = [item.user, item.purpose, item.contact, item.notes, item.date, item.start, item.end]
@@ -495,8 +499,7 @@ function buildCalendarDay(dateObj, month, selectedDate, bookingDates) {
     el.filterDate.value = dateKey;
     state.calendarCursor = startOfMonth(dateObj);
     activateTab('list');
-    renderList();
-    renderMiniCalendar();
+    renderAll();
   });
 
   return button;
@@ -515,7 +518,7 @@ function renderMiniCalendar() {
   const firstDay = new Date(year, month, 1);
   const mondayBasedOffset = (firstDay.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - mondayBasedOffset);
-  const selectedDate = el.filterDate.value;
+  const selectedDate = activeFilterDate();
   const bookingDates = new Set(visibleBookings().map((item) => item.date).filter(Boolean));
 
   for (let i = 0; i < 42; i += 1) {
@@ -530,8 +533,9 @@ function renderList() {
   el.listContainer.innerHTML = '';
 
   if (!list.length) {
+    const selectedDate = activeFilterDate();
     el.listContainer.appendChild(
-      createEmpty(state.isLoading ? '正在加载预约记录…' : '还没有符合条件的预约记录。')
+      createEmpty(state.isLoading ? '正在加载预约记录…' : `${selectedDate} 暂无预约。`)
     );
     return;
   }
@@ -697,8 +701,8 @@ el.filterDate.addEventListener('input', () => {
 
 el.clearFiltersBtn.addEventListener('click', () => {
   el.searchInput.value = '';
-  el.filterDate.value = '';
-  state.calendarCursor = startOfMonth(new Date());
+  el.filterDate.value = nowDate();
+  syncCalendarCursor(el.filterDate.value);
   renderList();
   renderMiniCalendar();
 });
@@ -767,6 +771,8 @@ el.clearAllBtn.addEventListener('click', async () => {
 
 async function init() {
   state.settings = { ...defaultSettings, ...loadJSON(SETTINGS_KEY, defaultSettings) };
+  el.filterDate.value = nowDate();
+  syncCalendarCursor(el.filterDate.value);
   renderAll();
   resetForm();
 
