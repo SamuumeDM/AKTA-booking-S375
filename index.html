@@ -119,6 +119,27 @@
                 <input id="filterDate" type="date" />
               </label>
 
+              <div class="mini-calendar-card">
+                <div class="mini-calendar-header">
+                  <button id="calendarPrevBtn" class="mini-calendar-nav" type="button" aria-label="上一月">‹</button>
+                  <div id="calendarMonthLabel" class="mini-calendar-title">2026年4月</div>
+                  <button id="calendarNextBtn" class="mini-calendar-nav" type="button" aria-label="下一月">›</button>
+                </div>
+
+                <div class="mini-calendar-weekdays" aria-hidden="true">
+                  <div class="mini-calendar-weekday">一</div>
+                  <div class="mini-calendar-weekday">二</div>
+                  <div class="mini-calendar-weekday">三</div>
+                  <div class="mini-calendar-weekday">四</div>
+                  <div class="mini-calendar-weekday">五</div>
+                  <div class="mini-calendar-weekday">六</div>
+                  <div class="mini-calendar-weekday">日</div>
+                </div>
+
+                <div id="miniCalendarGrid" class="mini-calendar-grid"></div>
+                <div class="mini-calendar-tip">点日期即可按当天筛选，绿色小点表示当天有预约。</div>
+              </div>
+
               <button id="clearFiltersBtn" type="button">清空筛选</button>
               <button id="exportBtn" type="button">导出 CSV</button>
             </div>
@@ -164,20 +185,9 @@
   <template id="bookingTemplate">
     <article class="card booking-card">
       <div class="booking-top">
-        <div>
-          <div class="badges">
-            <span class="badge solid">AKTA</span>
-            <span class="badge">姓名</span>
-            <span class="badge">用途</span>
-            <span class="badge purpose-badge hidden">用途</span>
-          </div>
-
+        <div class="booking-info">
           <p class="project-name">标题</p>
           <p class="meta">元信息</p>
-
-          <p class="purpose-row hidden"></p>
-          <p class="contact-row hidden"></p>
-          <p class="notes-row hidden"></p>
         </div>
 
         <div class="booking-actions">
