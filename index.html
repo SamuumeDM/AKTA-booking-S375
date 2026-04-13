@@ -100,51 +100,55 @@
     </section>
 
     <section id="panel-list" class="panel">
-      <div class="two-col">
-        <aside class="sidebar">
-          <div class="card">
-            <div class="card-header">
-              <h2>筛选</h2>
-              <p>按姓名、用途或备注筛选。默认只显示当天预约，查看其他日期可点击下方月历。</p>
+      <div class="list-layout">
+        <section class="card filter-card-wide">
+          <div class="card-header filter-card-header">
+            <div>
+              <h2>预约筛选</h2>
+              <p>默认只显示当天预约。查看其他日期时，直接点击下方月历即可。</p>
             </div>
+          </div>
 
-            <div class="actions vertical">
-              <label>
-                关键词
-                <input id="searchInput" type="text" placeholder="姓名 / 用途 / 备注" />
-              </label>
+          <div class="filter-toolbar">
+            <label class="toolbar-field toolbar-field-keyword">
+              关键词
+              <input id="searchInput" type="text" placeholder="姓名 / 用途 / 备注" />
+            </label>
 
-              <label>
-                日期
-                <input id="filterDate" class="filter-date-display" type="text" readonly placeholder="默认显示今天" />
-              </label>
+            <label class="toolbar-field toolbar-field-date">
+              日期
+              <input id="filterDate" class="filter-date-display" type="text" readonly placeholder="默认显示今天" />
+            </label>
 
-              <div class="mini-calendar-card">
-                <div class="mini-calendar-header">
-                  <button id="calendarPrevBtn" class="mini-calendar-nav" type="button" aria-label="上一月">‹</button>
-                  <div id="calendarMonthLabel" class="mini-calendar-title">2026年4月</div>
-                  <button id="calendarNextBtn" class="mini-calendar-nav" type="button" aria-label="下一月">›</button>
-                </div>
-
-                <div class="mini-calendar-weekdays" aria-hidden="true">
-                  <div class="mini-calendar-weekday">一</div>
-                  <div class="mini-calendar-weekday">二</div>
-                  <div class="mini-calendar-weekday">三</div>
-                  <div class="mini-calendar-weekday">四</div>
-                  <div class="mini-calendar-weekday">五</div>
-                  <div class="mini-calendar-weekday">六</div>
-                  <div class="mini-calendar-weekday">日</div>
-                </div>
-
-                <div id="miniCalendarGrid" class="mini-calendar-grid"></div>
-                <div class="mini-calendar-tip">点日期即可按当天筛选，绿色小点表示当天有预约。</div>
-              </div>
-
-              <button id="clearFiltersBtn" type="button">清空筛选</button>
+            <div class="toolbar-buttons">
+              <button id="clearFiltersBtn" type="button">回到今天</button>
               <button id="exportBtn" type="button">导出 CSV</button>
             </div>
           </div>
-        </aside>
+
+          <div class="calendar-panel">
+            <div class="mini-calendar-card">
+              <div class="mini-calendar-header">
+                <button id="calendarPrevBtn" class="mini-calendar-nav" type="button" aria-label="上一月">‹</button>
+                <div id="calendarMonthLabel" class="mini-calendar-title">2026年4月</div>
+                <button id="calendarNextBtn" class="mini-calendar-nav" type="button" aria-label="下一月">›</button>
+              </div>
+
+              <div class="mini-calendar-weekdays" aria-hidden="true">
+                <div class="mini-calendar-weekday">一</div>
+                <div class="mini-calendar-weekday">二</div>
+                <div class="mini-calendar-weekday">三</div>
+                <div class="mini-calendar-weekday">四</div>
+                <div class="mini-calendar-weekday">五</div>
+                <div class="mini-calendar-weekday">六</div>
+                <div class="mini-calendar-weekday">日</div>
+              </div>
+
+              <div id="miniCalendarGrid" class="mini-calendar-grid"></div>
+              <div class="mini-calendar-tip">点日期即可切换列表，绿色小点表示当天有预约。</div>
+            </div>
+          </div>
+        </section>
 
         <main id="listContainer" class="list-stack"></main>
       </div>
