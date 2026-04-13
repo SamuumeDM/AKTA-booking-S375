@@ -12,6 +12,7 @@ const state = {
   settings: { ...defaultSettings },
   editingRowNumber: null,
   isLoading: false,
+  calendarCursor: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
 };
 
 const el = {
@@ -36,6 +37,10 @@ const el = {
   noticeText: document.getElementById('noticeText'),
   statToday: document.getElementById('statToday'),
   statUpcoming: document.getElementById('statUpcoming'),
+  miniCalendarGrid: document.getElementById('miniCalendarGrid'),
+  calendarMonthLabel: document.getElementById('calendarMonthLabel'),
+  calendarPrevBtn: document.getElementById('calendarPrevBtn'),
+  calendarNextBtn: document.getElementById('calendarNextBtn'),
 };
 
 const fields = {
@@ -408,52 +413,15 @@ function createDayCard(date, items) {
 
   items.forEach((item) => {
     const clone = template.content.firstElementChild.cloneNode(true);
-    const badges = clone.querySelectorAll('.badge:not(.solid)');
-
-    if (badges[0]) {
-      badges[0].textContent = item.user || '未填写姓名';
-    }
-
-    const purposeBadge = clone.querySelector('.purpose-badge');
-    if (item.purpose) {
-      if (badges[1]) badges[1].textContent = item.purpose;
-      if (purposeBadge) {
-        purposeBadge.textContent = item.purpose;
-        purposeBadge.classList.remove('hidden');
-      }
-    } else if (badges[1]) {
-      badges[1].textContent = '预约';
-    }
 
     const oldTitle = clone.querySelector('.project-name');
     if (oldTitle) {
-      const newTitle = createNameTimeRow(item);
-      oldTitle.replaceWith(newTitle);
+      oldTitle.replaceWith(createNameTimeRow(item));
     }
 
     const oldMeta = clone.querySelector('.meta');
     if (oldMeta) {
-      const newMeta = createMetaRow(item);
-      oldMeta.replaceWith(newMeta);
-    }
-
-    const purpose = clone.querySelector('.purpose-row');
-    const contact = clone.querySelector('.contact-row');
-    const notes = clone.querySelector('.notes-row');
-
-    if (purpose) {
-      purpose.classList.add('hidden');
-      purpose.textContent = '';
-    }
-
-    if (contact) {
-      contact.classList.add('hidden');
-      contact.textContent = '';
-    }
-
-    if (notes) {
-      notes.classList.add('hidden');
-      notes.textContent = '';
+      oldMeta.replaceWith(createMetaRow(item));
     }
 
     const editBtn = clone.querySelector('.edit-btn');
@@ -489,6 +457,74 @@ function createDayCard(date, items) {
   return wrapper;
 }
 
+function startOfMonth(dateObj) {
+  return new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
+}
+
+function syncCalendarCursor(dateValue) {
+  const parsed = parseDateString(dateValue);
+  if (parsed) {
+    state.calendarCursor = startOfMonth(parsed);
+  }
+}
+
+function buildCalendarDay(dateObj, month, selectedDate, bookingDates) {
+  const dateKey = formatLocalDate(dateObj);
+  const isOtherMonth = dateObj.getMonth() !== month;
+  const isToday = dateKey === nowDate();
+  const isSelected = dateKey === selectedDate;
+  const hasBooking = bookingDates.has(dateKey);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'mini-calendar-day';
+  button.textContent = String(dateObj.getDate());
+  button.setAttribute('aria-label', dateKey);
+
+  if (isOtherMonth) button.classList.add('is-other-month');
+  if (isToday) button.classList.add('is-today');
+  if (isSelected) button.classList.add('is-selected');
+
+  if (hasBooking) {
+    const dot = document.createElement('span');
+    dot.className = 'mini-calendar-dot';
+    button.appendChild(dot);
+  }
+
+  button.addEventListener('click', () => {
+    el.filterDate.value = dateKey;
+    state.calendarCursor = startOfMonth(dateObj);
+    activateTab('list');
+    renderList();
+    renderMiniCalendar();
+  });
+
+  return button;
+}
+
+function renderMiniCalendar() {
+  if (!el.miniCalendarGrid || !el.calendarMonthLabel) return;
+
+  const cursor = state.calendarCursor || startOfMonth(new Date());
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+
+  el.calendarMonthLabel.textContent = `${year}年${month + 1}月`;
+  el.miniCalendarGrid.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1);
+  const mondayBasedOffset = (firstDay.getDay() + 6) % 7;
+  const gridStart = new Date(year, month, 1 - mondayBasedOffset);
+  const selectedDate = el.filterDate.value;
+  const bookingDates = new Set(visibleBookings().map((item) => item.date).filter(Boolean));
+
+  for (let i = 0; i < 42; i += 1) {
+    const day = new Date(gridStart);
+    day.setDate(gridStart.getDate() + i);
+    el.miniCalendarGrid.appendChild(buildCalendarDay(day, month, selectedDate, bookingDates));
+  }
+}
+
 function renderList() {
   const list = filteredBookings();
   el.listContainer.innerHTML = '';
@@ -522,6 +558,7 @@ function renderAll() {
   renderStats();
   renderSettingsForm();
   renderList();
+  renderMiniCalendar();
 }
 
 function activateTab(name) {
@@ -645,18 +682,52 @@ el.bookingForm.addEventListener('submit', async (event) => {
 
 el.resetBtn.addEventListener('click', resetForm);
 
-el.searchInput.addEventListener('input', renderList);
-el.filterDate.addEventListener('input', renderList);
+el.searchInput.addEventListener('input', () => {
+  renderList();
+  renderMiniCalendar();
+});
+
+el.filterDate.addEventListener('input', () => {
+  if (el.filterDate.value) {
+    syncCalendarCursor(el.filterDate.value);
+  }
+  renderList();
+  renderMiniCalendar();
+});
 
 el.clearFiltersBtn.addEventListener('click', () => {
   el.searchInput.value = '';
   el.filterDate.value = '';
+  state.calendarCursor = startOfMonth(new Date());
   renderList();
+  renderMiniCalendar();
 });
 
 el.exportBtn.addEventListener('click', () => {
   exportCsv(filteredBookings().map(bookingToCsvRow));
 });
+
+if (el.calendarPrevBtn) {
+  el.calendarPrevBtn.addEventListener('click', () => {
+    state.calendarCursor = new Date(
+      state.calendarCursor.getFullYear(),
+      state.calendarCursor.getMonth() - 1,
+      1
+    );
+    renderMiniCalendar();
+  });
+}
+
+if (el.calendarNextBtn) {
+  el.calendarNextBtn.addEventListener('click', () => {
+    state.calendarCursor = new Date(
+      state.calendarCursor.getFullYear(),
+      state.calendarCursor.getMonth() + 1,
+      1
+    );
+    renderMiniCalendar();
+  });
+}
 
 el.settingsForm.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -703,7 +774,7 @@ async function init() {
     await reloadBookings();
   } catch (error) {
     state.isLoading = false;
-    renderList();
+    renderAll();
     showFeedback(`无法连接 Google Sheets：${error.message}`, 'error');
   }
 }
