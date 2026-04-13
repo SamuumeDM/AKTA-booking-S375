@@ -218,6 +218,17 @@ textarea {
   resize: vertical;
 }
 
+.filter-date-display {
+  cursor: default;
+  color: var(--text);
+  background: #f8fafc;
+}
+
+.filter-date-display:focus {
+  box-shadow: none;
+  border-color: #d8e0ea;
+}
+
 .span-2 {
   grid-column: span 2;
 }
@@ -451,11 +462,11 @@ button.danger:hover {
 }
 
 .mini-calendar-card {
-  margin-top: 14px;
-  padding: 14px;
+  margin-top: 10px;
+  padding: 10px;
   background: #fff;
   border: 1px solid #dbe3ef;
-  border-radius: 18px;
+  border-radius: 14px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -463,22 +474,22 @@ button.danger:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .mini-calendar-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #1f2a44;
 }
 
 .mini-calendar-nav {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 1px solid #dbe3ef;
   background: #fff;
-  border-radius: 10px;
-  font-size: 20px;
+  border-radius: 8px;
+  font-size: 18px;
   line-height: 1;
   color: #42526b;
   cursor: pointer;
@@ -492,22 +503,22 @@ button.danger:hover {
 .mini-calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .mini-calendar-weekday {
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #7b8aa0;
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .mini-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 .mini-calendar-day {
@@ -515,12 +526,12 @@ button.danger:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 38px;
+  height: 30px;
   border: 1px solid #e4ebf5;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   color: #23314d;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -550,11 +561,11 @@ button.danger:hover {
 
 .mini-calendar-dot {
   position: absolute;
-  bottom: 5px;
+  bottom: 3px;
   left: 50%;
   transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: #22c55e;
 }
@@ -564,8 +575,8 @@ button.danger:hover {
 }
 
 .mini-calendar-tip {
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 8px;
+  font-size: 11px;
   color: #7b8aa0;
   text-align: center;
 }
