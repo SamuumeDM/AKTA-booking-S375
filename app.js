@@ -113,14 +113,10 @@ function parseDateString(value) {
     const trimmed = value.trim();
 
     let m = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if (m) {
-      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    }
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 
     m = trimmed.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
-    if (m) {
-      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    }
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 
     const parsed = new Date(trimmed);
     if (!Number.isNaN(parsed.getTime())) return parsed;
@@ -358,6 +354,38 @@ function createEmpty(message) {
   return node;
 }
 
+function createNameTimeRow(item) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'project-name';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'name-main';
+  nameSpan.textContent = item.user || '未填写姓名';
+
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'time-main';
+  timeSpan.textContent = `${item.start}–${item.end}`;
+
+  wrapper.appendChild(nameSpan);
+  wrapper.appendChild(timeSpan);
+
+  return wrapper;
+}
+
+function createMetaRow(item) {
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+
+  const parts = [`整理至 ${effectiveEnd(item.end, item.cleanupMinutes)}`];
+
+  if (item.purpose) parts.push(`用途（柱子类型）*：${item.purpose}`);
+  if (item.contact) parts.push(`联系方式：${item.contact}`);
+  if (item.notes) parts.push(`备注：${item.notes}`);
+
+  meta.textContent = parts.join(' · ');
+  return meta;
+}
+
 function createDayCard(date, items) {
   const wrapper = document.createElement('section');
   wrapper.className = 'card day-card';
@@ -388,7 +416,7 @@ function createDayCard(date, items) {
 
     const purposeBadge = clone.querySelector('.purpose-badge');
     if (item.purpose) {
-      if (badges[1]) badges[1].textContent = '柱子类型';
+      if (badges[1]) badges[1].textContent = item.purpose;
       if (purposeBadge) {
         purposeBadge.textContent = item.purpose;
         purposeBadge.classList.remove('hidden');
@@ -397,19 +425,16 @@ function createDayCard(date, items) {
       badges[1].textContent = '预约';
     }
 
-    const title = clone.querySelector('.project-name');
-    if (title) {
-      title.textContent = item.user || '预约信息';
+    const oldTitle = clone.querySelector('.project-name');
+    if (oldTitle) {
+      const newTitle = createNameTimeRow(item);
+      oldTitle.replaceWith(newTitle);
     }
 
-    const meta = clone.querySelector('.meta');
-    if (meta) {
-      const parts = [
-        `${item.start}–${item.end}`,
-        `整理至 ${effectiveEnd(item.end, item.cleanupMinutes)}`,
-      ];
-      if (item.contact) parts.push(item.contact);
-      meta.textContent = parts.join(' · ');
+    const oldMeta = clone.querySelector('.meta');
+    if (oldMeta) {
+      const newMeta = createMetaRow(item);
+      oldMeta.replaceWith(newMeta);
     }
 
     const purpose = clone.querySelector('.purpose-row');
@@ -417,13 +442,8 @@ function createDayCard(date, items) {
     const notes = clone.querySelector('.notes-row');
 
     if (purpose) {
-      if (item.purpose) {
-        purpose.textContent = `用途（柱子类型）*：${item.purpose}`;
-        purpose.classList.remove('hidden');
-      } else {
-        purpose.classList.add('hidden');
-        purpose.textContent = '';
-      }
+      purpose.classList.add('hidden');
+      purpose.textContent = '';
     }
 
     if (contact) {
@@ -432,13 +452,8 @@ function createDayCard(date, items) {
     }
 
     if (notes) {
-      if (item.notes) {
-        notes.textContent = `备注：${item.notes}`;
-        notes.classList.remove('hidden');
-      } else {
-        notes.classList.add('hidden');
-        notes.textContent = '';
-      }
+      notes.classList.add('hidden');
+      notes.textContent = '';
     }
 
     const editBtn = clone.querySelector('.edit-btn');
