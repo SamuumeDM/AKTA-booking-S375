@@ -99,6 +99,14 @@ function statusOf(date) {
   return 'past';
 }
 
+function isExpiredBooking(item) {
+  return !!item.date && item.date < nowDate();
+}
+
+function visibleBookings() {
+  return state.bookings.filter((item) => !isExpiredBooking(item));
+}
+
 function statusLabel(status) {
   if (status === 'today') return 'today';
   if (status === 'upcoming') return 'upcoming';
@@ -139,7 +147,9 @@ function setFormData(data) {
   fields.purpose.value = data.purpose || '';
   fields.start.value = data.start || '09:00';
   fields.end.value = data.end || '10:00';
-  fields.cleanupMinutes.value = Number.isFinite(Number(data.cleanupMinutes)) ? data.cleanupMinutes : state.settings.defaultCleanupMinutes;
+  fields.cleanupMinutes.value = Number.isFinite(Number(data.cleanupMinutes))
+    ? data.cleanupMinutes
+    : state.settings.defaultCleanupMinutes;
   fields.contact.value = data.contact || '';
   fields.notes.value = data.notes || '';
 }
@@ -160,13 +170,19 @@ function resetForm() {
 
 function findConflict(candidate, ignoreRowNumber = null) {
   const candidateEnd = effectiveEnd(candidate.end, candidate.cleanupMinutes);
-  return state.bookings.find((item) => item._rowNumber !== ignoreRowNumber && item.date === candidate.date && overlaps(candidate.start, candidateEnd, item.start, effectiveEnd(item.end, item.cleanupMinutes)));
+  return visibleBookings().find(
+    (item) =>
+      item._rowNumber !== ignoreRowNumber &&
+      item.date === candidate.date &&
+      overlaps(candidate.start, candidateEnd, item.start, effectiveEnd(item.end, item.cleanupMinutes))
+  );
 }
 
 function renderStats() {
   const today = nowDate();
-  el.statToday.textContent = String(state.bookings.filter((b) => b.date === today).length);
-  el.statUpcoming.textContent = String(state.bookings.filter((b) => b.date >= today).length);
+  const visible = visibleBookings();
+  el.statToday.textContent = String(visible.filter((b) => b.date === today).length);
+  el.statUpcoming.textContent = String(visible.filter((b) => b.date >= today).length);
 }
 
 function renderHeader() {
@@ -206,7 +222,21 @@ function csvEscape(value) {
 }
 
 function exportCsv(rows) {
-  const header = ['User', 'Lab', 'Project', 'Instrument', 'Date', 'Start', 'End', 'CleanupMinutes', 'EffectiveEnd', 'Purpose', 'Contact', 'Notes', 'CreatedAt'];
+  const header = [
+    'User',
+    'Lab',
+    'Project',
+    'Instrument',
+    'Date',
+    'Start',
+    'End',
+    'CleanupMinutes',
+    'EffectiveEnd',
+    'Purpose',
+    'Contact',
+    'Notes',
+    'CreatedAt',
+  ];
   const csv = [header, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -220,7 +250,7 @@ function exportCsv(rows) {
 function filteredBookings() {
   const query = el.searchInput.value.trim().toLowerCase();
   const selectedDate = el.filterDate.value;
-  return [...state.bookings]
+  return [...visibleBookings()]
     .filter((item) => (selectedDate ? item.date === selectedDate : true))
     .filter((item) => {
       if (!query) return true;
@@ -252,6 +282,7 @@ function createDayCard(date, items) {
     const clone = template.content.firstElementChild.cloneNode(true);
     const badges = clone.querySelectorAll('.badge:not(.solid)');
     badges[0].textContent = item.user || '未填写姓名';
+
     const purposeBadge = clone.querySelector('.purpose-badge');
     if (item.purpose) {
       badges[1].textContent = '柱子类型';
@@ -260,6 +291,7 @@ function createDayCard(date, items) {
     } else {
       badges[1].textContent = '预约';
     }
+
     clone.querySelector('.project-name').textContent = item.user || '预约信息';
     clone.querySelector('.meta').innerHTML = `时间：${item.start}–${item.end}<br>整理至：${effectiveEnd(item.end, item.cleanupMinutes)}`;
 
@@ -322,9 +354,11 @@ function renderList() {
     return acc;
   }, {});
 
-  Object.keys(groups).sort().forEach((date) => {
-    el.listContainer.appendChild(createDayCard(date, groups[date]));
-  });
+  Object.keys(groups)
+    .sort()
+    .forEach((date) => {
+      el.listContainer.appendChild(createDayCard(date, groups[date]));
+    });
 }
 
 function persistSettings() {
@@ -442,7 +476,10 @@ el.bookingForm.addEventListener('submit', async (event) => {
     await reloadBookings();
     const conflict = findConflict(data, state.editingRowNumber);
     if (conflict) {
-      showFeedback(`时间冲突：${conflict.date} 已有 ${conflict.user} 的预约（${conflict.start}–${conflict.end}，另含 ${conflict.cleanupMinutes} 分钟整理时间）。`, 'error');
+      showFeedback(
+        `时间冲突：${conflict.date} 已有 ${conflict.user} 的预约（${conflict.start}–${conflict.end}，另含 ${conflict.cleanupMinutes} 分钟整理时间）。`,
+        'error'
+      );
       return;
     }
 
