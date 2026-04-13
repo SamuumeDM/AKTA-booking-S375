@@ -497,3 +497,117 @@ button.danger:hover {
     justify-content: center;
   }
 }
+.mini-calendar-card {
+  margin-top: 14px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.mini-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.mini-calendar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+.mini-calendar-nav {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 20px;
+  line-height: 1;
+  color: #42526b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-calendar-nav:hover {
+  background: #f5f8fc;
+}
+
+.mini-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.mini-calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7b8aa0;
+  padding: 4px 0;
+}
+
+.mini-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.mini-calendar-day {
+  position: relative;
+  height: 38px;
+  border: 1px solid #e4ebf5;
+  border-radius: 10px;
+  background: #fff;
+  color: #23314d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-calendar-day:hover {
+  background: #f5f8ff;
+  border-color: #b8cae8;
+}
+
+.mini-calendar-day.is-other-month {
+  color: #b3bdcc;
+  background: #fafbfd;
+}
+
+.mini-calendar-day.is-today {
+  border-color: #f59e0b;
+}
+
+.mini-calendar-day.is-selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.mini-calendar-dot {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.mini-calendar-day.is-selected .mini-calendar-dot {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.mini-calendar-tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #7b8aa0;
+  text-align: center;
+}
