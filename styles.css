@@ -299,17 +299,42 @@ button.danger:hover {
   background: var(--danger-dark);
 }
 
-.two-col {
+.list-layout {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
   gap: 12px;
-  align-items: start;
 }
 
-.sidebar {
-  height: fit-content;
-  position: sticky;
-  top: 10px;
+.filter-card-wide {
+  padding: 14px;
+}
+
+.filter-card-header p {
+  margin-bottom: 10px;
+}
+
+.filter-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) minmax(170px, 0.6fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.toolbar-field {
+  min-width: 0;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.calendar-panel {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
 }
 
 .list-stack {
@@ -384,29 +409,6 @@ button.danger:hover {
   min-width: 0;
 }
 
-.badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.badge {
-  display: inline-flex;
-  padding: 4px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: white;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.badge.solid {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-}
-
 .project-name {
   margin: 0 0 4px;
   font-size: 15px;
@@ -433,14 +435,6 @@ button.danger:hover {
   word-break: break-word;
 }
 
-.purpose-row,
-.contact-row,
-.notes-row {
-  margin: 3px 0 0;
-  line-height: 1.35;
-  font-size: 12px;
-}
-
 .booking-actions {
   display: flex;
   gap: 8px;
@@ -462,8 +456,8 @@ button.danger:hover {
 }
 
 .mini-calendar-card {
-  margin-top: 10px;
-  padding: 10px;
+  width: min(100%, 520px);
+  padding: 12px;
   background: #fff;
   border: 1px solid #dbe3ef;
   border-radius: 14px;
@@ -478,14 +472,14 @@ button.danger:hover {
 }
 
 .mini-calendar-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1f2a44;
 }
 
 .mini-calendar-nav {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border: 1px solid #dbe3ef;
   background: #fff;
   border-radius: 8px;
@@ -526,7 +520,7 @@ button.danger:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
+  height: 34px;
   border: 1px solid #e4ebf5;
   border-radius: 8px;
   background: #fff;
@@ -561,7 +555,7 @@ button.danger:hover {
 
 .mini-calendar-dot {
   position: absolute;
-  bottom: 3px;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
   width: 4px;
@@ -591,12 +585,13 @@ button.danger:hover {
     grid-template-columns: 1fr;
   }
 
-  .two-col {
-    grid-template-columns: 1fr;
+  .filter-toolbar {
+    grid-template-columns: 1fr 200px;
   }
 
-  .sidebar {
-    position: static;
+  .toolbar-buttons {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 }
 
@@ -614,6 +609,7 @@ button.danger:hover {
     grid-template-columns: 1fr;
   }
 
+  .filter-toolbar,
   .booking-top {
     grid-template-columns: 1fr;
   }
@@ -623,8 +619,13 @@ button.danger:hover {
     align-items: flex-start;
   }
 
-  .booking-actions {
+  .booking-actions,
+  .toolbar-buttons {
     justify-content: flex-start;
+  }
+
+  .mini-calendar-card {
+    width: 100%;
   }
 
   .tab {
