@@ -105,7 +105,7 @@
           <div class="card">
             <div class="card-header">
               <h2>筛选</h2>
-              <p>按姓名、柱子类型、备注或日期查看预约。</p>
+              <p>按姓名、用途或备注筛选。默认只显示当天预约，查看其他日期可点击下方月历。</p>
             </div>
 
             <div class="actions vertical">
@@ -116,7 +116,7 @@
 
               <label>
                 日期
-                <input id="filterDate" type="date" />
+                <input id="filterDate" class="filter-date-display" type="text" readonly placeholder="默认显示今天" />
               </label>
 
               <div class="mini-calendar-card">
