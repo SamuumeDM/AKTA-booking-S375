@@ -68,13 +68,27 @@ function saveJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function pad2(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatLocalDate(dateObj) {
+  return `${dateObj.getFullYear()}-${pad2(dateObj.getMonth() + 1)}-${pad2(dateObj.getDate())}`;
+}
+
 function nowDate() {
-  return new Date().toISOString().slice(0, 10);
+  return formatLocalDate(new Date());
+}
+
+function nowMinutes() {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
 }
 
 function toMinutes(time) {
-  const [h, m] = String(time || '').split(':').map(Number);
-  return h * 60 + m;
+  const match = String(time || '').match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return NaN;
+  return Number(match[1]) * 60 + Number(match[2]);
 }
 
 function formatMinutes(total) {
@@ -92,6 +106,75 @@ function overlaps(startA, endA, startB, endB) {
   return toMinutes(startA) < toMinutes(endB) && toMinutes(startB) < toMinutes(endA);
 }
 
+function parseDateString(value) {
+  if (value == null || value === '') return null;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    let m = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+
+    m = trimmed.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+    if (m) {
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const ms = excelEpoch.getTime() + value * 24 * 60 * 60 * 1000;
+    const parsed = new Date(ms);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  return null;
+}
+
+function normalizeDateValue(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return value.trim();
+
+  const parsed = parseDateString(value);
+  if (!parsed) return String(value).slice(0, 10);
+
+  return formatLocalDate(parsed);
+}
+
+function normalizeTimeValue(value) {
+  if (value == null || value === '') return '';
+
+  const text = String(value).trim();
+
+  let match = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (match) return `${pad2(match[1])}:${match[2]}`;
+
+  match = text.match(/(\d{1,2}):(\d{2})/);
+  if (match) return `${pad2(match[1])}:${match[2]}`;
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) {
+    return `${pad2(parsed.getHours())}:${pad2(parsed.getMinutes())}`;
+  }
+
+  return text;
+}
+
+function weekdayLabel(dateStr) {
+  const d = parseDateString(dateStr);
+  if (!d) return '';
+  const labels = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  return labels[d.getDay()];
+}
+
 function statusOf(date) {
   const today = nowDate();
   if (date === today) return 'today';
@@ -100,7 +183,16 @@ function statusOf(date) {
 }
 
 function isExpiredBooking(item) {
-  return !!item.date && item.date < nowDate();
+  if (!item?.date) return false;
+
+  const today = nowDate();
+  if (item.date < today) return true;
+  if (item.date > today) return false;
+
+  const endWithCleanup = toMinutes(effectiveEnd(item.end, item.cleanupMinutes));
+  if (Number.isNaN(endWithCleanup)) return false;
+
+  return endWithCleanup <= nowMinutes();
 }
 
 function visibleBookings() {
@@ -108,9 +200,9 @@ function visibleBookings() {
 }
 
 function statusLabel(status) {
-  if (status === 'today') return 'today';
-  if (status === 'upcoming') return 'upcoming';
-  return 'past';
+  if (status === 'today') return '今天';
+  if (status === 'upcoming') return '即将到来';
+  return '已过期';
 }
 
 function showFeedback(message, type = 'success') {
@@ -200,8 +292,6 @@ function renderSettingsForm() {
 function bookingToCsvRow(item) {
   return [
     item.user,
-    item.lab,
-    item.project,
     'AKTA',
     item.date,
     item.start,
@@ -224,8 +314,6 @@ function csvEscape(value) {
 function exportCsv(rows) {
   const header = [
     'User',
-    'Lab',
-    'Project',
     'Instrument',
     'Date',
     'Start',
@@ -250,11 +338,14 @@ function exportCsv(rows) {
 function filteredBookings() {
   const query = el.searchInput.value.trim().toLowerCase();
   const selectedDate = el.filterDate.value;
+
   return [...visibleBookings()]
     .filter((item) => (selectedDate ? item.date === selectedDate : true))
     .filter((item) => {
       if (!query) return true;
-      const hay = [item.user, item.purpose, item.contact, item.notes].join(' ').toLowerCase();
+      const hay = [item.user, item.purpose, item.contact, item.notes, item.date, item.start, item.end]
+        .join(' ')
+        .toLowerCase();
       return hay.includes(query);
     })
     .sort(sortBookings);
@@ -274,64 +365,108 @@ function createDayCard(date, items) {
   const header = document.createElement('div');
   header.className = 'day-header';
   const status = statusOf(date);
-  header.innerHTML = `<div><h2>${date}</h2><p>${items.length} 条预约</p></div><span class="day-status ${status}">${statusLabel(status)}</span>`;
+  const weekday = weekdayLabel(date);
+
+  header.innerHTML = `
+    <div>
+      <h2>${date}${weekday ? `（${weekday}）` : ''}</h2>
+      <p>${items.length} 条预约</p>
+    </div>
+    <span class="day-status ${status}">${statusLabel(status)}</span>
+  `;
   wrapper.appendChild(header);
 
   const template = document.getElementById('bookingTemplate');
+
   items.forEach((item) => {
     const clone = template.content.firstElementChild.cloneNode(true);
     const badges = clone.querySelectorAll('.badge:not(.solid)');
-    badges[0].textContent = item.user || '未填写姓名';
+
+    if (badges[0]) {
+      badges[0].textContent = item.user || '未填写姓名';
+    }
 
     const purposeBadge = clone.querySelector('.purpose-badge');
     if (item.purpose) {
-      badges[1].textContent = '柱子类型';
-      purposeBadge.textContent = item.purpose;
-      purposeBadge.classList.remove('hidden');
-    } else {
+      if (badges[1]) badges[1].textContent = '柱子类型';
+      if (purposeBadge) {
+        purposeBadge.textContent = item.purpose;
+        purposeBadge.classList.remove('hidden');
+      }
+    } else if (badges[1]) {
       badges[1].textContent = '预约';
     }
 
-    clone.querySelector('.project-name').textContent = item.user || '预约信息';
-    clone.querySelector('.meta').innerHTML = `时间：${item.start}–${item.end}<br>整理至：${effectiveEnd(item.end, item.cleanupMinutes)}`;
+    const title = clone.querySelector('.project-name');
+    if (title) {
+      title.textContent = item.user || '预约信息';
+    }
+
+    const meta = clone.querySelector('.meta');
+    if (meta) {
+      const parts = [
+        `${item.start}–${item.end}`,
+        `整理至 ${effectiveEnd(item.end, item.cleanupMinutes)}`,
+      ];
+      if (item.contact) parts.push(item.contact);
+      meta.textContent = parts.join(' · ');
+    }
 
     const purpose = clone.querySelector('.purpose-row');
     const contact = clone.querySelector('.contact-row');
     const notes = clone.querySelector('.notes-row');
 
-    if (item.purpose) {
-      purpose.textContent = `用途（柱子类型）：${item.purpose}`;
-      purpose.classList.remove('hidden');
-    }
-    if (item.contact) {
-      contact.textContent = `联系方式：${item.contact}`;
-      contact.classList.remove('hidden');
-    }
-    if (item.notes) {
-      notes.textContent = `备注：${item.notes}`;
-      notes.classList.remove('hidden');
-    }
-
-    clone.querySelector('.edit-btn').addEventListener('click', () => {
-      state.editingRowNumber = item._rowNumber;
-      el.formTitle.textContent = '编辑预约';
-      el.submitBtn.textContent = '保存修改';
-      setFormData(item);
-      activateTab('book');
-      showFeedback('正在编辑这条预约记录。', 'success');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    clone.querySelector('.delete-btn').addEventListener('click', async () => {
-      if (!confirm('确定删除这条预约吗？删除后无法恢复。')) return;
-      try {
-        await apiRequest({ action: 'delete', rowNumber: item._rowNumber });
-        await reloadBookings();
-        showFeedback('预约已删除。', 'success');
-      } catch (error) {
-        showFeedback(`删除失败：${error.message}`, 'error');
+    if (purpose) {
+      if (item.purpose) {
+        purpose.textContent = `用途（柱子类型）*：${item.purpose}`;
+        purpose.classList.remove('hidden');
+      } else {
+        purpose.classList.add('hidden');
+        purpose.textContent = '';
       }
-    });
+    }
+
+    if (contact) {
+      contact.classList.add('hidden');
+      contact.textContent = '';
+    }
+
+    if (notes) {
+      if (item.notes) {
+        notes.textContent = `备注：${item.notes}`;
+        notes.classList.remove('hidden');
+      } else {
+        notes.classList.add('hidden');
+        notes.textContent = '';
+      }
+    }
+
+    const editBtn = clone.querySelector('.edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        state.editingRowNumber = item._rowNumber;
+        el.formTitle.textContent = '编辑预约';
+        el.submitBtn.textContent = '保存修改';
+        setFormData(item);
+        activateTab('book');
+        showFeedback('正在编辑这条预约记录。', 'success');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    const deleteBtn = clone.querySelector('.delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', async () => {
+        if (!confirm('确定删除这条预约吗？删除后无法恢复。')) return;
+        try {
+          await apiRequest({ action: 'delete', rowNumber: item._rowNumber });
+          await reloadBookings();
+          showFeedback('预约已删除。', 'success');
+        } catch (error) {
+          showFeedback(`删除失败：${error.message}`, 'error');
+        }
+      });
+    }
 
     wrapper.appendChild(clone);
   });
@@ -344,7 +479,9 @@ function renderList() {
   el.listContainer.innerHTML = '';
 
   if (!list.length) {
-    el.listContainer.appendChild(createEmpty(state.isLoading ? '正在加载预约记录…' : '还没有符合条件的预约记录。'));
+    el.listContainer.appendChild(
+      createEmpty(state.isLoading ? '正在加载预约记录…' : '还没有符合条件的预约记录。')
+    );
     return;
   }
 
@@ -375,33 +512,6 @@ function renderAll() {
 function activateTab(name) {
   el.tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === name));
   Object.entries(el.panels).forEach(([key, panel]) => panel.classList.toggle('active', key === name));
-}
-
-function normalizeDateValue(value) {
-  if (value == null || value === '') return '';
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) {
-    const year = parsed.getFullYear();
-    const month = String(parsed.getMonth() + 1).padStart(2, '0');
-    const day = String(parsed.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-  return String(value).slice(0, 10);
-}
-
-function normalizeTimeValue(value) {
-  if (value == null || value === '') return '';
-  if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) return value;
-  const match = String(value).match(/(\d{2}):(\d{2})/);
-  if (match) return `${match[1]}:${match[2]}`;
-  const parsed = new Date(value);
-  if (!Number.isNaN(parsed.getTime())) {
-    const h = String(parsed.getHours()).padStart(2, '0');
-    const m = String(parsed.getMinutes()).padStart(2, '0');
-    return `${h}:${m}`;
-  }
-  return String(value);
 }
 
 function normalizeBooking(item) {
@@ -435,18 +545,22 @@ async function apiRequest(payload = null) {
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }
+
   const json = await response.json();
   if (!json.success) {
     throw new Error(json.error || '服务器返回失败');
   }
+
   return json;
 }
 
 async function reloadBookings() {
   state.isLoading = true;
   renderList();
+
   const json = await apiRequest();
   state.bookings = (json.data || []).map(normalizeBooking).sort(sortBookings);
+
   state.isLoading = false;
   renderAll();
 }
@@ -474,6 +588,7 @@ el.bookingForm.addEventListener('submit', async (event) => {
     el.submitBtn.textContent = state.editingRowNumber ? '保存中…' : '提交中…';
 
     await reloadBookings();
+
     const conflict = findConflict(data, state.editingRowNumber);
     if (conflict) {
       showFeedback(
@@ -500,6 +615,7 @@ el.bookingForm.addEventListener('submit', async (event) => {
 
     await apiRequest(payload);
     await reloadBookings();
+
     const message = state.editingRowNumber ? '预约已更新。' : '预约已登记。';
     resetForm();
     showFeedback(message, 'success');
@@ -529,22 +645,27 @@ el.exportBtn.addEventListener('click', () => {
 
 el.settingsForm.addEventListener('submit', (event) => {
   event.preventDefault();
+
   state.settings = {
     labName: settingFields.labName.value.trim() || defaultSettings.labName,
     defaultCleanupMinutes: Number(settingFields.defaultCleanupMinutes.value || 0),
     notice: settingFields.notice.value.trim() || defaultSettings.notice,
   };
+
   persistSettings();
   renderAll();
+
   if (!state.editingRowNumber) {
     fields.cleanupMinutes.value = state.settings.defaultCleanupMinutes;
   }
+
   activateTab('book');
   showFeedback('设置已保存（只保存在当前浏览器）。', 'success');
 });
 
 el.clearAllBtn.addEventListener('click', async () => {
   if (!confirm('确定清空所有预约记录吗？此操作不可恢复。')) return;
+
   try {
     const bookings = [...state.bookings];
     for (const item of bookings.sort((a, b) => b._rowNumber - a._rowNumber)) {
@@ -562,6 +683,7 @@ async function init() {
   state.settings = { ...defaultSettings, ...loadJSON(SETTINGS_KEY, defaultSettings) };
   renderAll();
   resetForm();
+
   try {
     await reloadBookings();
   } catch (error) {
