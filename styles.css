@@ -344,7 +344,214 @@ button.danger:hover { background: var(--danger-dark); }
   max-width: 1480px;
   padding: 16px 20px 32px;
 }
+/* ===== 更紧凑的预约列表视图 ===== */
 
+.page {
+  max-width: 1640px;
+  padding: 12px 18px 24px;
+}
+
+.hero {
+  grid-template-columns: minmax(0, 1.8fr) minmax(420px, 0.95fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: start;
+}
+
+/* 右上统计区横向显示 */
+.hero-card:has(#statToday):has(#statUpcoming) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+
+.hero-card:has(#statToday):has(#statUpcoming) > div {
+  min-height: auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+#statToday,
+#statUpcoming {
+  display: block;
+  font-size: 32px;
+  line-height: 1;
+  margin-top: 6px;
+}
+
+.two-col {
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: 10px;
+}
+
+.notice {
+  margin: 10px 0 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.tabs {
+  margin-bottom: 10px;
+}
+
+.list-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.day-card {
+  padding: 10px 12px;
+}
+
+.day-header {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.day-title-wrap {
+  min-width: 0;
+}
+
+.day-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.day-card h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.weekday {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7890;
+}
+
+.day-header p {
+  margin: 3px 0 0;
+  font-size: 12px;
+}
+
+.day-status {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.booking-card + .booking-card {
+  margin-top: 8px;
+}
+
+.booking-card {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.booking-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.badge {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.project-name {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0 0 2px;
+}
+
+.purpose-row,
+.contact-row,
+.notes-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: 2px 12px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #66758f;
+}
+
+.booking-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.booking-actions button {
+  min-width: 72px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.empty {
+  padding: 24px 12px;
+}
+
+@media (max-width: 1200px) {
+  .page {
+    max-width: 100%;
+    padding: 12px 14px 24px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-card:has(#statToday):has(#statUpcoming) {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-top {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-actions {
+    justify-content: flex-start;
+  }
+}
 .hero {
   grid-template-columns: 1.8fr 0.7fr;
   gap: 14px;
