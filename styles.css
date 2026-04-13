@@ -86,7 +86,6 @@ body {
   align-content: start;
 }
 
-/* 右上统计区横向排列 */
 .hero-card:has(#statToday):has(#statUpcoming) {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -395,17 +394,28 @@ button.danger:hover {
 
 .project-name {
   margin: 0 0 4px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.25;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.project-name .name-main,
+.project-name .time-main {
+  font-weight: 700;
+  color: var(--text);
 }
 
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  display: block;
   font-size: 13px;
-  line-height: 1.35;
+  line-height: 1.45;
   margin: 0;
+  font-weight: 400;
+  color: var(--muted);
+  word-break: break-word;
 }
 
 .purpose-row,
@@ -436,7 +446,6 @@ button.danger:hover {
   color: var(--muted);
 }
 
-/* 平板 */
 @media (max-width: 1200px) {
   .page {
     max-width: 100%;
@@ -456,7 +465,6 @@ button.danger:hover {
   }
 }
 
-/* 手机 */
 @media (max-width: 900px) {
   .grid-form {
     grid-template-columns: 1fr;
@@ -471,10 +479,13 @@ button.danger:hover {
     grid-template-columns: 1fr;
   }
 
-  .day-header,
   .booking-top {
-    flex-direction: column;
     grid-template-columns: 1fr;
+  }
+
+  .day-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .booking-actions {
